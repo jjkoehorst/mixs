@@ -2,35 +2,29 @@
 
 {{ schema.description }}
 
-URI: <a href={{ schema.id }}>{{ schema.id }}</a>
-
-
-## Packages
-
-| Package | Description |
-{% for c in schemaview.all_classes().values() -%}
-{%- if not c.mixin and not c.is_a -%}
-| --- | --- |
-| {{ gen.link(c) }} | {{ c.description }} |
-{%- endif -%}
-{% endfor %}
+URI: {{ schema.id }}
 
 ## Checklists
 
-| Checklist | Description |
 {% for c in schemaview.all_classes().values() -%}
-{%- if c.mixin -%}
-| --- | --- |
-| {{ gen.link(c) }} | {{ c.description }} |
-{%- endif -%}
+{% if c.mixin %}
+* {{ gen.link(c) }}
+{% endif %}
 {% endfor %}
+
+## Packages
+
+{% for c in schemaview.all_classes().values() -%}
+{% if not c.mixin and not c.is_a %}
+* {{ gen.link(c) }}
+{% endif %}
+{% endfor %}
+
 
 ## Combinations
 
-| Combination | Description |
 {% for c in schemaview.all_classes().values() -%}
-{% if not c.mixin and c.is_a -%}
-| --- | --- |
-| {{ gen.link(c) }} | {{ c.description }} |
-{%- endif -%}
+{% if not c.mixin and c.is_a %}
+* {{ gen.link(c) }}
+{% endif %}
 {% endfor %}
