@@ -24,3 +24,24 @@ As of 07 Feb 2023.
  * yaml_out: yaml file for linkml schema generated from schemasheet files (tsv_in)
  * __init__.py: Python script for ...?
  * mixs.db: ???
+
+## Work in progress
+
+See issues [529](https://github.com/GenomicsStandardsConsortium/mixs/issues/529) and [511](https://github.com/GenomicsStandardsConsortium/mixs/issues/511).
+
+Currently working in [branch rlw_edit_02-2023](https://github.com/GenomicsStandardsConsortium/mixs/tree/rlw-edits-02-2023) which branches from [issue 511 branch](https://github.com/GenomicsStandardsConsortium/mixs/tree/issue-511-tested-schemasheets).
+
+Ramona is working on the following tasks:
+* Remove duplicate IDs for a label
+* Remove multiple labels for an ID
+* Mark which slots can have variant definitions per extension
+* Make sure all the other slots have a single definition
+* OUTCOME: Each and every slot (from MIxS 6 SOT) appears exactly once ...partial_slotdefs.tsv
+* Review classes in https://github.com/GenomicsStandardsConsortium/mixs/blob/rlw-edits-02-2023/schemasheets/tsv_in/MIxS_6_term_updates_classdefs.tsv
+* Review slot assignments in https://github.com/GenomicsStandardsConsortium/mixs/blob/rlw-edits-02-2023/schemasheets/tsv_in/MIxS_6_term_updates_slot_assignments_and_usages.tsv
+
+## Next steps
+* Confrim that the outcome is consistent with the [MIxS 6 SOT](https://github.com/GenomicsStandardsConsortium/mixs/blob/main/mixs/excel/mixs_v6.xlsx) just in case something was changed in the google doc.
+* Check for any errors in the slotdefs. Is there a script for this task? Maybe [PR 524](https://github.com/GenomicsStandardsConsortium/mixs/pull/524).
+* Rebuild schema (yaml file and generated files)
+* ???
