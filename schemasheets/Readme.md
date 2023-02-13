@@ -32,8 +32,10 @@ See issues [529](https://github.com/GenomicsStandardsConsortium/mixs/issues/529)
 Currently working in [branch rlw_edit_02-2023](https://github.com/GenomicsStandardsConsortium/mixs/tree/rlw-edits-02-2023) which branches from [issue 511 branch](https://github.com/GenomicsStandardsConsortium/mixs/tree/issue-511-tested-schemasheets).
 
 Ramona is working on the following tasks:
+* Work from https://github.com/GenomicsStandardsConsortium/mixs/blob/rlw-edits-02-2023/schemasheets/tsv_in/MIxS_6_term_updates_global_partial_slotdefs.tsv
 * Remove duplicate IDs for a label
 * Remove multiple labels for an ID
+* If there is a good reason for one of the above, make a new term and document it.
 * Mark which slots can have variant definitions per extension
 * Make sure all the other slots have a single definition
 * OUTCOME: Each and every slot (from MIxS 6 SOT) appears exactly once ...partial_slotdefs.tsv
