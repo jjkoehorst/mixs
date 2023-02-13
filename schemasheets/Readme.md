@@ -37,8 +37,8 @@ Ramona is working on the following tasks:
 * Mark which slots can have variant definitions per extension
 * Make sure all the other slots have a single definition
 * OUTCOME: Each and every slot (from MIxS 6 SOT) appears exactly once ...partial_slotdefs.tsv
-* Review classes in https://github.com/GenomicsStandardsConsortium/mixs/blob/rlw-edits-02-2023/schemasheets/tsv_in/MIxS_6_term_updates_classdefs.tsv
-* Review slot assignments in https://github.com/GenomicsStandardsConsortium/mixs/blob/rlw-edits-02-2023/schemasheets/tsv_in/MIxS_6_term_updates_slot_assignments_and_usages.tsv
+* Also: Review classes in https://github.com/GenomicsStandardsConsortium/mixs/blob/rlw-edits-02-2023/schemasheets/tsv_in/MIxS_6_term_updates_classdefs.tsv
+* Also: Review slot assignments in https://github.com/GenomicsStandardsConsortium/mixs/blob/rlw-edits-02-2023/schemasheets/tsv_in/MIxS_6_term_updates_slot_assignments_and_usages.tsv
 
 ## Next steps
 * Confrim that the outcome is consistent with the [MIxS 6 SOT](https://github.com/GenomicsStandardsConsortium/mixs/blob/main/mixs/excel/mixs_v6.xlsx) just in case something was changed in the google doc.
