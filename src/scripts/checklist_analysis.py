@@ -7,6 +7,7 @@ Date: 2024-08-20
 
 from pathlib import Path
 
+import pandas as pd
 import requests as request
 import xmltodict
 from rdflib import Graph
@@ -18,9 +19,9 @@ def main():
     """
     The main function of this script
     """
-    obtain_ena_checklists()
-    obtain_ncbi_terms()
-    obtain_mixs_terms()
+    # obtain_ena_checklists()
+    # obtain_ncbi_terms()
+    # obtain_mixs_terms()
     # Load the data into a graph
     graph = load_into_graph()
     # Analyze the data
@@ -32,43 +33,122 @@ def analyze_data(graph: Graph):
     Analyze the data
     """
 
-    # SPARQL query to count the number of samples
+    ####################################################################################################
+    # NCBI term mismatch analysis
+    ####################################################################################################
     query = """
-    SELECT ?s ?p ?o
-    WHERE {
-        ?s ?p ?o
-    } LIMIT 10
-    """
+    # To remove terms from NCBI that are present in Mixs using the DatatypeProperty
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX ns1: <http://example.com/>
+    select distinct ?ncbi_harmonized_name ?ncbi_name 
+    where {
+        ?attribute a ns1:attributeType .
+        ?attribute ns1:harmonizedname ?ncbi_harmonized_name .
+        ?attribute ns1:name ?ncbi_name .
+        
+        MINUS { ?mixs rdfs:label ?ncbi_harmonized_name . }  
+    }"""
 
     # Perform the query
     results = graph.query(query)
+    # Load the results into a panda
+    df = pd.DataFrame(results.bindings)
     # Print the results
-    for result in results:
-        print(result)
+    print(df.to_markdown())
+
+    ####################################################################################################
+    # ENA term mismatch analysis
+    ####################################################################################################
+
+    query = """
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX ns1: <http://example.com/>
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    select distinct ?ena_name ?ena_label
+    where {
+        ?ena_field a ns1:fieldType .
+        ?ena_field ns1:name ?ena_name .
+        ?ena_field ns1:label ?ena_label .
+        # MIXS
+        MINUS {
+            ?object a owl:DatatypeProperty .
+            ?object dcterms:title ?ena_label .
+        }
+    }"""
+
+    # Perform the query
+    results = graph.query(query)
+    # Load the results into a panda
+    df = pd.DataFrame(results.bindings)
+    # Print the results
+    print(df.to_markdown())
+
+    ####################################################################################################
+    # MIXS term mismatch analysis
+    ####################################################################################################
+
+    query = """
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX ns1: <http://example.com/>
+    select distinct ?mixs_label ?title
+    where {
+        VALUES ?type { owl:DatatypeProperty }
+        ?mixs a ?type .
+        ?mixs rdfs:label ?mixs_label .
+    	?mixs dcterms:title ?title .
+        
+        MINUS {     
+            ?attribute a ns1:attributeType .
+            ?attribute ?any ?mixs_label . 
+        }
+    }"""
+
+    # Perform the query
+    results = graph.query(query)
+    # Load the results into a panda
+    df = pd.DataFrame(results.bindings)
+    # Print the results
+    print(df.to_markdown())
+
+
+
+
 
 
 def load_into_graph() -> Graph:
     """
     Load the data into a graph
     """
-    # Create the graph
-    graph = Graph()
-    # List all the files in the data directory recursively
-    data_dir = Path("data") / "rdf"
-    for file in data_dir.rglob("*.ttl"):
-        print(f"Loading file {file}")
-        graph.parse(str(file), format="turtle")
-    # Print the number of triples
-    print(f"Number of triples: {len(graph)}")
-    # Serialize the graph
-    graph.serialize(destination=Path("data") / "rdf" / "combined.ttl", format="turtle")
+    # Create the file path
+    combined_file = Path("data") / "rdf" / "combined.ttl"
+    if not combined_file.exists():
+        print("Loading data into graph")
+        # Create the graph
+        graph = Graph()
+        # List all the files in the data directory recursively
+        data_dir = Path("data") / "rdf"
+        for file in data_dir.rglob("*.ttl"):
+            print(f"Loading file {file}")
+            graph.parse(str(file), format="turtle")
+        # Print the number of triples
+        print(f"Number of triples: {len(graph)}")
+        # Serialize the graph
+        graph.serialize(destination=combined_file, format="turtle")
+    else:
+        # Load the graph from file
+        print(f"Loading graph from file {combined_file}")
+        graph = Graph()
+        graph.parse(str(combined_file), format="turtle")
     # Return the graph
     return graph
 
 
 def obtain_mixs_terms():
     # This was generated using:
-    # poetry run gen-owl src/mixs/schema/mixs.yaml > src/scripts/data/mixs/mixs.ttl
+    # poetry run gen-owl src/mixs/schema/mixs.yaml > src/scripts/data/rdf/mixs/mixs.ttl
     pass
 
 
@@ -116,12 +196,12 @@ def obtain_ena_checklists():
                   "ERC000057", "ERC000058"]
     fields = {}
     for checklist in checklists:
-        print(f"Obtaining checklist {checklist}")
-        url = "https://www.ebi.ac.uk/ena/browser/api/xml/" + checklist
         # Create the JSON path
         turtle_path = Path("data") / "rdf" / "ena" / f"{checklist}.ttl"
         # Check if the JSON already exists
         if not turtle_path.exists():
+            print(f"Obtaining checklist {checklist}")
+            url = "https://www.ebi.ac.uk/ena/browser/api/xml/" + checklist
             # Check if the directory exists
             if not turtle_path.parent.exists():
                 turtle_path.parent.mkdir(parents=True)
@@ -184,5 +264,35 @@ where {
     ?object a owl:ObjectProperty .
     ?object rdfs:label ?label .
     ?object dcterms:title ?title .    
+} 
+
+# To remove terms from ENA that are present in Mixs using the DatatypeProperty
+
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX ns1: <http://example.com/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+select distinct ?ena_name ?ena_label
+where {
+    ?ena_field a ns1:fieldType .
+    ?ena_field ns1:name ?ena_name .
+    ?ena_field ns1:label ?ena_label .
+    # MIXS
+    MINUS {
+    	?object a owl:DatatypeProperty .
+	    ?object dcterms:title ?ena_label .
+    }
+} 
+
+# To remove terms from NCBI that are present in Mixs using the DatatypeProperty
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX ns1: <http://example.com/>
+select distinct ?hname ?name 
+where {
+    ?attribute a ns1:attributeType .
+    ?attribute ns1:harmonizedname ?hname .
+    ?attribute ns1:name ?name .
+    
+    MINUS { ?mixs rdfs:label ?hname . }  
 } 
 """
