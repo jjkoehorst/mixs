@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 import requests as request
 import xmltodict
-from rdflib import Graph
+from rdflib import BNode, Graph, URIRef
 
 from json_to_rdf import load_json_from_dict
 
@@ -19,16 +19,48 @@ def main():
     """
     The main function of this script
     """
-    # obtain_ena_checklists()
-    # obtain_ncbi_terms()
-    # obtain_mixs_terms()
+    obtain_ena_checklists()
+    obtain_ncbi_terms()
+    obtain_mixs_terms()
     # Load the data into a graph
     graph = load_into_graph()
     # Analyze the data
-    analyze_data(graph)
+    example_checker(graph)
+    # insdc_term_checker(graph)
+
+def example_checker(graph: Graph):
+    query = """
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX linkml: <https://w3id.org/linkml/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT distinct ?title ?term_example ?serialization 
+    WHERE {
+        ?term a linkml:SlotDefinition .
+        OPTIONAL {
+            ?term dcterms:title ?title .
+            ?term linkml:examples ?example .
+            ?example a linkml:Example .
+            ?example skos:example ?term_example .
+        }
+        OPTIONAL {
+            ?term linkml:string_serialization ?serialization .
+        }
+    }"""
+
+    # Perform the query
+    results = graph.query(query)
+
+    # Load the results into a panda
+    df = pd.DataFrame(results.bindings)
+    # For each column slice the string to 20 characters
+    for column in df.columns:
+        df[column] = df[column].apply(lambda x: str(x)[:50])
+
+    # Print the results
+    print(df.to_markdown())
 
 
-def analyze_data(graph: Graph):
+def insdc_term_checker(graph: Graph):
     """
     Analyze the data
     """
@@ -113,9 +145,34 @@ def analyze_data(graph: Graph):
     # Print the results
     print(df.to_markdown())
 
+def clear_blank_nodes(graph: Graph):
+    import uuid
+    # Replace blank nodes with UUIDs in the form of URIs
+    blank_lookup = {}
 
-
-
+    for subject, predicate, obj in graph.triples((None, None, None)):
+        if type(subject) == BNode:
+            if subject not in blank_lookup:
+                # Create a new URIRef based on a UUID
+                blank_lookup[subject] = URIRef(f"http://example.com/uuid/{uuid.uuid4()}")
+            new_subject = blank_lookup[subject]
+        else:
+            new_subject = subject
+        # Check if the object is a blank node using isinstance()
+        if type(obj) == BNode:
+            if obj not in blank_lookup:
+                # Create a new URIRef based on a UUID
+                blank_lookup[obj] = URIRef(f"http://example.com/uuid/{uuid.uuid4()}")
+            new_obj = blank_lookup[obj]
+        else:
+            new_obj = obj
+        
+        # Remove the old triples and add the new triples to the graph
+        graph.remove((subject, predicate, obj))
+        graph.add((new_subject, predicate, new_obj))
+    
+    # Serialize the graph
+    graph.serialize(destination="data/rdf/combined_no_blanks.ttl", format="turtle")
 
 
 def load_into_graph() -> Graph:
@@ -123,33 +180,35 @@ def load_into_graph() -> Graph:
     Load the data into a graph
     """
     # Create the file path
-    combined_file = Path("data") / "rdf" / "combined.ttl"
-    if not combined_file.exists():
+    if not Path("data/rdf/data/rdf/combined_no_blanks.ttl").exists():
         print("Loading data into graph")
         # Create the graph
         graph = Graph()
         # List all the files in the data directory recursively
         data_dir = Path("data") / "rdf"
         for file in data_dir.rglob("*.ttl"):
-            print(f"Loading file {file}")
+            print(f"Loading file {file}", end="\r")
             graph.parse(str(file), format="turtle")
         # Print the number of triples
         print(f"Number of triples: {len(graph)}")
         # Serialize the graph
-        graph.serialize(destination=combined_file, format="turtle")
+        clear_blank_nodes(graph)
     else:
-        # Load the graph from file
-        print(f"Loading graph from file {combined_file}")
+        # Load the graph
         graph = Graph()
-        graph.parse(str(combined_file), format="turtle")
+        graph.parse("data/rdf/combined_no_blanks.ttl", format="turtle")
+    
     # Return the graph
     return graph
 
 
 def obtain_mixs_terms():
     # This was generated using:
-    # poetry run gen-owl src/mixs/schema/mixs.yaml > src/scripts/data/rdf/mixs/mixs.ttl
-    pass
+    if not Path("data/rdf/mixs/mixs.ttl").exists():
+        command = "poetry run gen-rdf src/mixs/schema/mixs.yaml > src/scripts/data/rdf/mixs/mixs.ttl"
+        print(f"Run the following command: {command}")
+        # Wait for user enter button to continue
+        input("Press Enter to continue...")
 
 
 def obtain_ncbi_terms():
