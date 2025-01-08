@@ -92,11 +92,30 @@ def correct_string_serialization(schema_view: SchemaView) -> None:
     Update the schema where string serialization still exists
     TODO: This is still in development
     """
+    replacements = {}
+    # Parse settings to obtain regex for terms
+    for setting in schema_view.schema.settings:
+        value = schema_view.schema.settings[setting]
+        replacements[value.setting_key] = value.setting_value
+
+    logger.warning("####### String serialization section is still in development ########")
+    placeholder_pattern = r"\{(\w+)\}"
+
+    # Function to replace each match
+    def replacer(match):
+        key = match.group(1)  # Extract the key (e.g., 'float', 'unit')
+        return replacements.get(key, match.group(0))  # Replace if key exists, else keep original
+
     for index, slot in enumerate(schema_view.all_slots()):
         slot = schema_view.get_slot(slot)
         logger.debug(f"Slot name: {slot.name}")
         if slot.string_serialization:
-            logger.debug(f"String serialization for {slot.name}: {slot.string_serialization}")
+            logger.info(f"String serialization still exists for {slot.name}: {slot.string_serialization}")
+            # Perform replacement
+            replaced = re.sub(placeholder_pattern, replacer, slot.string_serialization)
+            logger.info(f"Replaced: {replaced}")
+            if "{" in replaced:
+                logger.error(f"String serialization for {slot.name} still contains placeholders")
        
 def schema_validator(schema_view: SchemaView) -> None:
     """
@@ -110,18 +129,17 @@ def schema_validator(schema_view: SchemaView) -> None:
         slot = schema_view.get_slot(slot)
         logger.debug(f"Slot name: {slot.name}")
         if slot.pattern:
-            logger.info(f"Pattern for {slot.name}: {slot.pattern}")
+            logger.debug(f"Pattern for {slot.name}: {slot.pattern}")
             # Obtain examples
             for example in slot.examples:
-                # Validate example with pattern
                 # Perform validation
                 pattern = re.compile(slot.pattern)
                 if not pattern.match(example.value):
-                    logger.error(f"Example: {example.value} does not match pattern {slot.pattern}")
+                    logger.error(f"Example from {slot.name}: {example.value} does not match pattern {slot.pattern}")
                 else:
-                    logger.info(f"Example: {example.value} matches pattern {slot.pattern}")
+                    logger.debug(f"Example: {example.value} matches pattern {slot.pattern}")
         else:
-            pass # logger.debug(f"No pattern for {slot.name}\n{slot}")
+            logger.debug(f"No pattern for {slot.name}\n{slot}")
     logger.info(f"Processed {index+1} slots")
 
 def schema_writer(schema_view: SchemaView) -> None:
